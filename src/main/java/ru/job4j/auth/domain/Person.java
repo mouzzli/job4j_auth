@@ -1,8 +1,9 @@
 package ru.job4j.auth.domain;
 
-import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import javax.persistence.*;
 
 @Entity
 @Table(name = "person")
