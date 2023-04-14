@@ -32,7 +32,7 @@ public class SimplePersonService implements PersonService {
     @Transactional
     @Override
     public boolean delete(Person person) {
-        if (checkPersonExist(person)) {
+        if (personRepository.existsById(person.getId())) {
             personRepository.delete(person);
             return true;
         }
@@ -42,15 +42,10 @@ public class SimplePersonService implements PersonService {
     @Transactional
     @Override
     public boolean update(Person person) {
-        if (checkPersonExist(person)) {
+        if (personRepository.existsById(person.getId())) {
             personRepository.save(person);
             return true;
         }
         return false;
-    }
-
-    private boolean checkPersonExist(Person person) {
-        var optionalPerson = personRepository.findById(person.getId());
-        return optionalPerson.isPresent();
     }
 }
