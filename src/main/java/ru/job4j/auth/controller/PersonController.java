@@ -5,10 +5,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.auth.domain.Person;
 import ru.job4j.auth.service.PersonService;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/person")
@@ -23,17 +25,16 @@ public class PersonController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Person> findById(@PathVariable int id) {
-        var person = this.persons.findById(id);
-        return new ResponseEntity<Person>(
-                person.orElse(new Person()),
-                person.isPresent() ? HttpStatus.OK : HttpStatus.NOT_FOUND
-        );
+    public Person findById(@PathVariable int id) {
+        return persons.findById(id).orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "person ID does not exist"
+        ));
     }
 
     @PostMapping("/")
     public ResponseEntity<Person> create(@RequestBody Person person) {
-        return new ResponseEntity<Person>(
+        validate(person);
+        return new ResponseEntity<>(
                 this.persons.save(person),
                 HttpStatus.CREATED
         );
@@ -41,6 +42,7 @@ public class PersonController {
 
     @PutMapping("/")
     public ResponseEntity<Void> update(@RequestBody Person person) {
+        validate(person);
         return new ResponseEntity<>(persons.update(person) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
     }
 
@@ -53,7 +55,17 @@ public class PersonController {
 
     @PostMapping("/sign-up")
     public void signUp(@RequestBody Person person) {
+        validate(person);
         person.setPassword(passwordEncoder.encode(person.getPassword()));
         persons.save(person);
+    }
+
+    private void validate(Person person) {
+        if (person.getLogin() == null || person.getPassword() == null) {
+            throw new NoSuchElementException("login and password must be present");
+        }
+        if (person.getLogin().equals("") || person.getPassword().equals("")) {
+            throw new NullPointerException("login and password mustn't be empty");
+        }
     }
 }
