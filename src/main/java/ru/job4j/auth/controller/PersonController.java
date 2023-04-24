@@ -2,6 +2,7 @@ package ru.job4j.auth.controller;
 
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -20,8 +21,12 @@ public class PersonController {
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/")
-    public List<Person> findAll() {
-        return this.persons.findAll();
+    public ResponseEntity<List<Person>> findAll() {
+        var body = persons.findAll();
+        return ResponseEntity.status(HttpStatus.OK)
+                .header("MyCustomHeader", "job4j_auth")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body);
     }
 
     @GetMapping("/{id}")
