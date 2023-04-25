@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.auth.domain.Person;
+import ru.job4j.auth.dto.PersonDTO;
 import ru.job4j.auth.service.PersonService;
 
 import java.util.List;
@@ -63,6 +64,14 @@ public class PersonController {
         validate(person);
         person.setPassword(passwordEncoder.encode(person.getPassword()));
         persons.save(person);
+    }
+
+    @PatchMapping("/patch/{id}")
+    public ResponseEntity<Person> patchDTO(@RequestBody PersonDTO personDTO, @PathVariable int id) {
+        var person = persons.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        person.setPassword(passwordEncoder.encode(personDTO.getPassword()));
+        return new ResponseEntity<>(persons.update(person) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
     }
 
     private void validate(Person person) {
