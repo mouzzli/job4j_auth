@@ -5,14 +5,19 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.auth.domain.Person;
 import ru.job4j.auth.dto.PersonDTO;
 import ru.job4j.auth.service.PersonService;
+import ru.job4j.auth.validation.Operation;
 
+
+import javax.validation.Valid;
 import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/person")
@@ -37,49 +42,39 @@ public class PersonController {
         ));
     }
 
-    @PostMapping("/")
-    public ResponseEntity<Person> create(@RequestBody Person person) {
-        validate(person);
-        return new ResponseEntity<>(
-                this.persons.save(person),
-                HttpStatus.CREATED
-        );
-    }
-
     @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody Person person) {
-        validate(person);
-        return new ResponseEntity<>(persons.update(person) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
+    public ResponseEntity<Map<String, String>> update(@Validated(Operation.OnUpdate.class) @RequestBody Person person) {
+        person.setPassword(passwordEncoder.encode(person.getPassword()));
+        if (!persons.update(person)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "person ID does not exist");
+        }
+        return ResponseEntity.of(Optional.of(Map.of("status", "updated")));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable int id) {
+    public ResponseEntity<Map<String, String>> delete(@PathVariable int id) {
         Person person = new Person();
         person.setId(id);
-        return new ResponseEntity<>(persons.delete(person) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
+        if (!persons.delete(person)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "person ID does not exist");
+        }
+        return ResponseEntity.of(Optional.of(Map.of("status", "deleted")));
     }
 
     @PostMapping("/sign-up")
-    public void signUp(@RequestBody Person person) {
-        validate(person);
+    public ResponseEntity<Map<String, String>> signUp(@Validated(Operation.OnCreate.class) @RequestBody Person person) {
         person.setPassword(passwordEncoder.encode(person.getPassword()));
         persons.save(person);
+        return ResponseEntity.of(Optional.of(Map.of("status", "created")));
     }
 
     @PatchMapping("/patch/{id}")
-    public ResponseEntity<Person> patchDTO(@RequestBody PersonDTO personDTO, @PathVariable int id) {
+    public ResponseEntity<Person> patchDTO(@Valid @RequestBody PersonDTO personDTO, @PathVariable int id) {
         var person = persons.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         person.setPassword(passwordEncoder.encode(personDTO.getPassword()));
         return new ResponseEntity<>(persons.update(person) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
-    }
-
-    private void validate(Person person) {
-        if (person.getLogin() == null || person.getPassword() == null) {
-            throw new NoSuchElementException("login and password must be present");
-        }
-        if (person.getLogin().equals("") || person.getPassword().equals("")) {
-            throw new NullPointerException("login and password mustn't be empty");
-        }
     }
 }
